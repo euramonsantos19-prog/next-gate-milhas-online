@@ -3,17 +3,19 @@ import pandas as pd
 
 st.title("Next Gate Milhas Online")
 
-st.write("Sistema de busca de ofertas de milhas")
-
 uploaded_file = st.file_uploader("Upload da base de milhas (Excel)", type=["xlsx"])
 
 if uploaded_file:
+
     df = pd.read_excel(uploaded_file)
 
-    st.write("Base carregada:")
-    st.dataframe(df)
+    # Padroniza nomes das colunas
+    df.columns = df.columns.str.strip().str.lower()
 
-    programa = st.selectbox("Programa", df["Programa"].unique())
+    st.write("Colunas detectadas na planilha:")
+    st.write(df.columns)
+
+    programa = st.selectbox("Programa", df["programa"].unique())
 
     quantidade = st.number_input("Quantidade de milhas desejadas", min_value=0)
 
@@ -24,12 +26,11 @@ if uploaded_file:
     if st.button("Buscar ofertas"):
 
         resultado = df[
-            (df["Programa"] == programa) &
-            (df["Quantidade"] >= quantidade) &
-            (df["CPF"] >= cpf) &
-            (df["Média por CPF"] <= media)
+            (df["programa"] == programa) &
+            (df["quantidade"] >= quantidade) &
+            (df["cpf"] >= cpf) &
+            (df["média por cpf"] <= media)
         ]
 
         st.write("Ofertas encontradas:")
-
         st.dataframe(resultado)
