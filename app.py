@@ -9,11 +9,13 @@ if uploaded_file:
 
     df = pd.read_excel(uploaded_file)
 
+    # padronizar colunas
     df.columns = df.columns.str.strip().str.lower()
 
+    # converter valores tipo 24K
     def converter_k(valor):
         if isinstance(valor, str):
-            valor = valor.replace("K", "000").replace("k", "000")
+            valor = valor.replace("K","000").replace("k","000")
         return valor
 
     df["média por cpf"] = df["média por cpf"].apply(converter_k)
@@ -50,7 +52,6 @@ if uploaded_file:
                 break
 
             milhas_disponiveis = row["quantidade"]
-
             milhas_usadas = min(milhas_disponiveis, milhas_restantes)
 
             nova_linha = row.copy()
@@ -63,16 +64,17 @@ if uploaded_file:
         resultado = pd.DataFrame(combinacao)
 
         if resultado.empty:
-
             st.warning("Nenhuma oferta encontrada.")
 
         elif milhas_restantes > 0:
-
             st.warning("Não foi possível atingir a quantidade desejada.")
-
             st.subheader("Combinação parcial encontrada")
             st.dataframe(resultado)
 
         else:
+            st.subheader("Melhor combinação encontrada")
+            st.dataframe(resultado)
 
-            st.sub
+            custo_total = (resultado["milhas_usadas"].sum() / 1000) * resultado.iloc[0]["custo do milheiro"]
+
+            st.success(f"Custo estimado total: R$ {round(custo_total,2)}")
