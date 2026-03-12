@@ -12,10 +12,15 @@ if uploaded_file:
     # Padroniza nomes das colunas
     df.columns = df.columns.str.strip().str.lower()
 
-    st.write("Colunas detectadas na planilha:")
+    # Converter colunas numéricas
+    df["quantidade"] = pd.to_numeric(df["quantidade"], errors="coerce")
+    df["cpf"] = pd.to_numeric(df["cpf"], errors="coerce")
+    df["média por cpf"] = pd.to_numeric(df["média por cpf"], errors="coerce")
+
+    st.write("Colunas detectadas:")
     st.write(df.columns)
 
-    programa = st.selectbox("Programa", df["programa"].unique())
+    programa = st.selectbox("Programa", df["programa"].dropna().unique())
 
     quantidade = st.number_input("Quantidade de milhas desejadas", min_value=0)
 
