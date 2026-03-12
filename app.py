@@ -30,9 +30,7 @@ if uploaded_file:
     df["custo do milheiro"] = pd.to_numeric(df["custo do milheiro"], errors="coerce")
 
     st.subheader("Base carregada")
-    st.dataframe(df)
 
-    # Filtros
     programa = st.selectbox(
         "Programa",
         df["programa"].dropna().unique()
@@ -44,26 +42,27 @@ if uploaded_file:
         step=1000
     )
 
-    cpf_necessario = st.number_input(
+    cpf_necessarios = st.number_input(
         "CPF necessários",
-        min_value=0
+        min_value=1
     )
 
-    media_limite = st.number_input(
-        "Média por CPF",
-        min_value=0
-    )
+    # cálculo automático da média
+    media_por_cpf = 0
+    if cpf_necessarios > 0:
+        media_por_cpf = milhas_desejadas / cpf_necessarios
+
+    st.write("Média por CPF calculada automaticamente:", int(media_por_cpf))
 
     if st.button("Buscar contas disponíveis"):
 
         resultado = df[
             (df["programa"] == programa) &
             (df["quantidade"] >= milhas_desejadas) &
-            (df["cpf"] >= cpf_necessario) &
-            (df["média por cpf"] <= media_limite)
+            (df["cpf"] >= cpf_necessarios) &
+            (df["média por cpf"] <= media_por_cpf)
         ]
 
-        # ordenar pelo menor custo
         resultado = resultado.sort_values(by="custo do milheiro")
 
         if resultado.empty:
