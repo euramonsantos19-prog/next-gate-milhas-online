@@ -9,16 +9,24 @@ if uploaded_file:
 
     df = pd.read_excel(uploaded_file)
 
-    # Padroniza nomes das colunas
+    # Padroniza colunas
     df.columns = df.columns.str.strip().str.lower()
 
-    # Converter colunas numéricas
+    # Converter valores tipo 24K -> 24000
+    def converter_k(valor):
+        if isinstance(valor, str):
+            valor = valor.replace("K", "000").replace("k", "000")
+        return valor
+
+    df["média por cpf"] = df["média por cpf"].apply(converter_k)
+
+    # Converter para número
     df["quantidade"] = pd.to_numeric(df["quantidade"], errors="coerce")
     df["cpf"] = pd.to_numeric(df["cpf"], errors="coerce")
     df["média por cpf"] = pd.to_numeric(df["média por cpf"], errors="coerce")
 
-    st.write("Colunas detectadas:")
-    st.write(df.columns)
+    st.write("Base carregada:")
+    st.dataframe(df)
 
     programa = st.selectbox("Programa", df["programa"].dropna().unique())
 
