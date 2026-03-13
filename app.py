@@ -14,14 +14,21 @@ df = pd.read_excel("base.xlsx")
 # padronizar colunas
 df.columns = df.columns.str.strip().str.lower()
 
-# converter valores tipo 24K
-def converter_k(valor):
+# converter valores especiais
+def tratar_media(valor):
+
     if isinstance(valor, str):
+
+        valor = valor.strip()
+
+        if valor in ["∞", "inf", "infinito"]:
+            return 0
+
         valor = valor.replace("K", "000").replace("k", "000")
+
     return valor
 
-if "média por cpf" in df.columns:
-    df["média por cpf"] = df["média por cpf"].apply(converter_k)
+df["média por cpf"] = df["média por cpf"].apply(tratar_media)
 
 # converter colunas numéricas
 df["quantidade"] = pd.to_numeric(df["quantidade"], errors="coerce")
@@ -59,7 +66,10 @@ if st.button("Buscar contas disponíveis"):
         (df["programa"] == programa) &
         (df["quantidade"] >= milhas_desejadas) &
         (df["cpf"] >= cpf_necessarios) &
-        (df["média por cpf"] <= media_por_cpf)
+        (
+            (df["média por cpf"] == 0) | 
+            (df["média por cpf"] <= media_por_cpf)
+        )
     ]
 
     resultado = resultado.sort_values(
@@ -74,18 +84,17 @@ if st.button("Buscar contas disponíveis"):
 
         st.subheader("Contas disponíveis")
 
-        # formatar milhar
         def formatar_milhar(valor):
             return f"{int(valor):,}".replace(",", ".")
 
         resultado["quantidade"] = resultado["quantidade"].apply(formatar_milhar)
 
-        # média por cpf multiplicada por 1000
+        # média por cpf formatada
         resultado["média por cpf"] = resultado["média por cpf"].apply(
-            lambda x: f"{int(x*1000):,}".replace(",", ".")
+            lambda x: "∞" if x == 0 else f"{int(x*1000):,}".replace(",", ".")
         )
 
-        # custo milheiro formatado
+        # custo milheiro
         resultado["custo do milheiro"] = resultado["custo do milheiro"].apply(
             lambda x: f"R$ {x:,.2f}"
             .replace(",", "X")
