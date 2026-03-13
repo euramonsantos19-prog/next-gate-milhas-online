@@ -36,8 +36,6 @@ if uploaded_file:
     df["média por cpf"] = pd.to_numeric(df["média por cpf"], errors="coerce")
     df["custo do milheiro"] = pd.to_numeric(df["custo do milheiro"], errors="coerce")
 
-    st.subheader("Base carregada")
-
     programa = st.selectbox(
         "Programa",
         df["programa"].dropna().unique()
@@ -62,7 +60,7 @@ if uploaded_file:
 
     st.write(
         "Média por CPF calculada automaticamente:",
-        int(media_por_cpf)
+        f"{int(media_por_cpf):,}".replace(",", ".")
     )
 
     if st.button("Buscar contas disponíveis"):
@@ -87,6 +85,13 @@ if uploaded_file:
         else:
 
             st.subheader("Contas disponíveis")
+
+            # função para separar milhar
+            def formatar_milhar(valor):
+                return f"{int(valor):,}".replace(",", ".")
+
+            resultado["quantidade"] = resultado["quantidade"].apply(formatar_milhar)
+            resultado["média por cpf"] = resultado["média por cpf"].apply(formatar_milhar)
 
             # formatar custo do milheiro
             resultado["custo do milheiro"] = resultado[
