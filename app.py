@@ -12,6 +12,7 @@ df = pd.read_excel("base.xlsx")
 
 df.columns = df.columns.str.strip().str.lower()
 
+# tratar valores especiais da média
 def tratar_media(valor):
 
     if isinstance(valor, str):
@@ -27,6 +28,7 @@ def tratar_media(valor):
 
 df["média por cpf"] = df["média por cpf"].apply(tratar_media)
 
+# converter colunas numéricas
 df["quantidade"] = pd.to_numeric(df["quantidade"], errors="coerce")
 df["cpf"] = pd.to_numeric(df["cpf"], errors="coerce")
 df["média por cpf"] = pd.to_numeric(df["média por cpf"], errors="coerce")
@@ -60,22 +62,26 @@ if st.button("Buscar contas disponíveis"):
     resultado = df[
         (df["programa"] == programa) &
         (df["quantidade"] >= milhas_desejadas) &
-        (df["cpf"] <= cpf_necessarios) &
+        (df["cpf"] >= cpf_necessarios) &
         (
             (df["média por cpf"] == 0) |
             (df["média por cpf"] <= media_por_cpf)
         )
-    ]
-
-    resultado = resultado.sort_values(
-        by="custo do milheiro"
-    )
+    ].copy()
 
     if resultado.empty:
 
         st.warning("Nenhuma conta encontrada com saldo suficiente.")
 
     else:
+
+        # calcular diferença para zerar conta
+        resultado["diferença"] = resultado["quantidade"] - milhas_desejadas
+
+        # ordenar melhor conta
+        resultado = resultado.sort_values(
+            by=["diferença", "custo do milheiro"]
+        )
 
         melhor = resultado.iloc[0]
 
@@ -94,7 +100,7 @@ if st.button("Buscar contas disponíveis"):
         )
 
         col3.metric(
-            "CPF",
+            "CPF disponíveis",
             int(melhor["cpf"])
         )
 
@@ -115,9 +121,21 @@ if st.button("Buscar contas disponíveis"):
             .replace("X", ".")
         )
 
-        st.success(
-            f"Custo estimado total: {custo_total_formatado}"
-        )
+        st.success(f"Custo estimado total: {custo_total_formatado}")
+
+        # ranking top 3
+        st.markdown("## 🏆 Top 3 melhores contas")
+
+        top3 = resultado.head(3)
+
+        for i, (_, row) in enumerate(top3.iterrows(), start=1):
+
+            st.write(
+                f"{i}️⃣ {row['fornecedor']} | "
+                f"{int(row['quantidade']):,}".replace(",", ".") +
+                f" milhas | CPF {int(row['cpf'])} | "
+                f"R$ {row['custo do milheiro']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            )
 
         st.markdown("## Outras contas disponíveis")
 
@@ -138,6 +156,6 @@ if st.button("Buscar contas disponíveis"):
         )
 
         st.dataframe(
-            resultado,
+            resultado.drop(columns=["diferença"]),
             use_container_width=True
         )
