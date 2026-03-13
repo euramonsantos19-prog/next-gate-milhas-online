@@ -14,7 +14,7 @@ df = pd.read_excel("base.xlsx")
 # padronizar colunas
 df.columns = df.columns.str.strip().str.lower()
 
-# converter valores especiais
+# tratar valores especiais da média
 def tratar_media(valor):
 
     if isinstance(valor, str):
@@ -49,27 +49,32 @@ milhas_desejadas = st.number_input(
 
 cpf_necessarios = st.number_input(
     "CPF necessários",
-    min_value=1
+    min_value=0
 )
 
 # cálculo automático da média
-media_por_cpf = milhas_desejadas / cpf_necessarios
-
-st.write(
-    "Média por CPF calculada automaticamente:",
-    f"{int(media_por_cpf):,}".replace(",", ".")
-)
+if cpf_necessarios == 0:
+    media_por_cpf = 0
+    st.write("Média por CPF calculada automaticamente: sem limite")
+else:
+    media_por_cpf = milhas_desejadas / cpf_necessarios
+    st.write(
+        "Média por CPF calculada automaticamente:",
+        f"{int(media_por_cpf):,}".replace(",", ".")
+    )
 
 if st.button("Buscar contas disponíveis"):
+
+    filtro_media = (
+        (df["média por cpf"] == 0) |
+        (df["média por cpf"] <= media_por_cpf)
+    )
 
     resultado = df[
         (df["programa"] == programa) &
         (df["quantidade"] >= milhas_desejadas) &
-        (df["cpf"] >= cpf_necessarios) &
-        (
-            (df["média por cpf"] == 0) | 
-            (df["média por cpf"] <= media_por_cpf)
-        )
+        ((df["cpf"] >= cpf_necessarios) | (cpf_necessarios == 0)) &
+        (filtro_media)
     ]
 
     resultado = resultado.sort_values(
@@ -84,6 +89,7 @@ if st.button("Buscar contas disponíveis"):
 
         st.subheader("Contas disponíveis")
 
+        # formatar milhar
         def formatar_milhar(valor):
             return f"{int(valor):,}".replace(",", ".")
 
@@ -94,7 +100,7 @@ if st.button("Buscar contas disponíveis"):
             lambda x: "∞" if x == 0 else f"{int(x*1000):,}".replace(",", ".")
         )
 
-        # custo milheiro
+        # custo milheiro formatado
         resultado["custo do milheiro"] = resultado["custo do milheiro"].apply(
             lambda x: f"R$ {x:,.2f}"
             .replace(",", "X")
