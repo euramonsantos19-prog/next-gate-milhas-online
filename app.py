@@ -8,49 +8,46 @@ st.title("Next Gate Milhas Online")
 # =========================
 # CARREGAR BASE
 # =========================
+@st.cache_data
+def carregar_base():
+    df = pd.read_excel("base.xlsx")
 
-df = pd.read_excel("base.xlsx")
+    # normalizar nomes das colunas
+    df.columns = (
+        df.columns
+        .str.strip()
+        .str.lower()
+        .str.replace("á","a")
+        .str.replace("é","e")
+        .str.replace("í","i")
+        .str.replace("ó","o")
+        .str.replace("ú","u")
+    )
 
-df.columns = (
-    df.columns
-    .str.strip()
-    .str.lower()
-    .str.replace("á","a")
-    .str.replace("é","e")
-    .str.replace("í","i")
-    .str.replace("ó","o")
-    .str.replace("ú","u")
-)
+    # tratar média por cpf
+    def tratar_media(valor):
+        if isinstance(valor, str):
+            valor = valor.strip()
+            if valor in ["∞","inf","infinito"]:
+                return 0
+            valor = valor.replace("K","000").replace("k","000")
+        return valor
 
-# =========================
-# TRATAR MEDIA CPF
-# =========================
+    df["media por cpf"] = df["media por cpf"].apply(tratar_media)
 
-def tratar_media(valor):
+    # converter tipos
+    df["quantidade"] = pd.to_numeric(df["quantidade"], errors="coerce")
+    df["cpf"] = pd.to_numeric(df["cpf"], errors="coerce")
+    df["media por cpf"] = pd.to_numeric(df["media por cpf"], errors="coerce")
+    df["custo do milheiro"] = pd.to_numeric(df["custo do milheiro"], errors="coerce")
 
-    if isinstance(valor, str):
+    return df
 
-        valor = valor.strip()
-
-        if valor in ["∞", "inf", "infinito"]:
-            return 0
-
-        valor = valor.replace("K","000").replace("k","000")
-
-    return valor
-
-
-df["media por cpf"] = df["media por cpf"].apply(tratar_media)
-
-df["quantidade"] = pd.to_numeric(df["quantidade"], errors="coerce")
-df["cpf"] = pd.to_numeric(df["cpf"], errors="coerce")
-df["media por cpf"] = pd.to_numeric(df["media por cpf"], errors="coerce")
-df["custo do milheiro"] = pd.to_numeric(df["custo do milheiro"], errors="coerce")
+df = carregar_base()
 
 # =========================
-# FILTROS
+# INPUTS
 # =========================
-
 programa = st.selectbox(
     "Programa",
     df["programa"].dropna().unique()
@@ -67,7 +64,8 @@ cpf_necessarios = st.number_input(
     min_value=1
 )
 
-media_por_cpf = milhas_desejadas / cpf_necessarios
+# média automática
+media_por_cpf = milhas_desejadas / cpf_necessarios if cpf_necessarios > 0 else 0
 
 st.write(
     "Média por CPF calculada automaticamente:",
@@ -75,10 +73,10 @@ st.write(
 )
 
 # =========================
-# BUSCAR CONTAS
+# BUSCA AUTOMÁTICA
 # =========================
 
-if st.button("Buscar contas disponíveis"):
+if milhas_desejadas > 0:
 
     resultado = df[
         (df["programa"] == programa) &
@@ -91,16 +89,12 @@ if st.button("Buscar contas disponíveis"):
     ].copy()
 
     if resultado.empty:
-
         st.warning("Nenhuma conta encontrada com saldo suficiente.")
-
     else:
 
+        # melhor conta
         resultado["diferenca"] = resultado["quantidade"] - milhas_desejadas
-
-        resultado = resultado.sort_values(
-            by=["diferenca","custo do milheiro"]
-        )
+        resultado = resultado.sort_values(by=["diferenca","custo do milheiro"])
 
         melhor = resultado.iloc[0]
 
@@ -130,6 +124,7 @@ if st.button("Buscar contas disponíveis"):
             .replace("X", ".")
         )
 
+        # custo total
         custo_total = (milhas_desejadas / 1000) * melhor["custo do milheiro"]
 
         custo_total = (
